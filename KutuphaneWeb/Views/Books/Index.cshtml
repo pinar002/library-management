@@ -1,0 +1,497 @@
+@{
+    ViewData["Title"] = "Kitap Listesi";
+}
+
+<div class="container mt-4">
+    <!-- Başlık kısmı -->
+    <div class="row mb-4">
+        <div class="col">
+            <h1><i class="bi bi-book"></i> Kitap Yönetimi</h1>
+            <p class="text-muted">Tüm kitapları görüntüle, ara ve yönet</p>
+        </div>
+    </div>
+
+    <!-- Arama ve filtre kutusu -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row g-3">
+                <!-- Arama kutusu -->
+                <div class="col-md-4">
+                    <label class="form-label">Arama</label>
+                    <input type="text" id="searchInput" class="form-control" 
+                           placeholder="Kitap adı, yazar veya ISBN ara...">
+                </div>
+                
+                <!-- Tür filtresi -->
+                <div class="col-md-3">
+                    <label class="form-label">Tür Filtresi</label>
+                    <select id="genreFilter" class="form-select">
+                        <option value="">Tüm Türler</option>
+                    </select>
+                </div>
+                
+                <!-- Stok durumu filtresi -->
+                <div class="col-md-3">
+                    <label class="form-label">Stok Durumu</label>
+                    <select id="stockFilter" class="form-select">
+                        <option value="">Tümü</option>
+                        <option value="instock">Stokta Var (5+)</option>
+                        <option value="lowstock">Az Stok (1-5)</option>
+                        <option value="outofstock">Tükendi</option>
+                    </select>
+                </div>
+                
+                <!-- Yenile butonu -->
+                <div class="col-md-2 d-flex align-items-end">
+                    <button id="refreshBtn" class="btn btn-secondary w-100">
+                        <i class="bi bi-arrow-clockwise"></i> Yenile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Üstteki butonlar ve sayaç -->
+    <div class="mb-3 d-flex justify-content-between align-items-center">
+        <a href="/Books/Create" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Yeni Kitap Ekle
+        </a>
+        <span id="resultCount" class="badge bg-secondary fs-6">Yükleniyor...</span>
+    </div>
+
+    <!-- Yükleme animasyonu -->
+    <div id="loadingSpinner" class="text-center my-5" style="display:none;">
+        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+            <span class="visually-hidden">Yükleniyor...</span>
+        </div>
+        <p class="mt-3">Kitaplar yükleniyor...</p>
+    </div>
+
+    <!-- Kitap tablosu -->
+    <div class="card">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0" id="booksTable">
+                <thead class="table-dark">
+                    <tr>
+                        <th style="width: 50px;">ID</th>
+                        <th>Kitap Adı</th>
+                        <th>Yazar</th>
+                        <th>Tür</th>
+                        <th style="width: 150px;">ISBN</th>
+                        <th style="width: 80px;">Yıl</th>
+                        <th style="width: 80px;">Stok</th>
+                        <th style="width: 120px;">Durum</th>
+                        <th style="width: 300px;">İşlemler</th>
+                    </tr>
+                </thead>
+                <tbody id="booksBody">
+                    <tr>
+                        <td colspan="9" class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Yükleniyor...</span>
+                            </div>
+                            <p class="mt-2">Kitaplar yükleniyor...</p>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Bildirim toastu -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast" role="alert">
+        <div class="toast-header">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong class="me-auto" id="toastTitle">Bildirim</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastBody"></div>
+    </div>
+</div>
+
+<script>
+// API adresi - backend'in çalıştığı adres
+const apiBase = "http://localhost:5045/api/books";
+
+// Tüm kitapları tutacak değişken
+let tumKitaplar = [];
+
+// ==========================================
+// Toast bildirim gösterme fonksiyonu
+// ==========================================
+function toastGoster(mesaj, baslik = "Bildirim") {
+    const toastElement = document.getElementById('liveToast');
+    document.getElementById('toastTitle').textContent = baslik;
+    document.getElementById('toastBody').textContent = mesaj;
+    
+    // Bootstrap toast'ını göster
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+}
+
+// ==========================================
+// Yükleme animasyonunu göster/gizle
+// ==========================================
+function yukleniyorGoster(goster) {
+    const spinner = document.getElementById("loadingSpinner");
+    const tablo = document.getElementById("booksTable");
+    
+    if(goster) {
+        spinner.style.display = "block";
+        tablo.style.display = "none";
+    } else {
+        spinner.style.display = "none";
+        tablo.style.display = "table";
+    }
+}
+
+// ==========================================
+// Stok durumunu belirle (Renk ve yazı)
+// ==========================================
+function stokDurumuGetir(stok) {
+    // Stok 0 ise kırmızı
+    if (stok === 0) {
+        return { 
+            yazi: "Tükendi", 
+            renk: "danger", 
+            ikon: "x-circle" 
+        };
+    } 
+    // Stok 1-5 arası ise sarı
+    else if (stok >= 1 && stok <= 5) {
+        return { 
+            yazi: "Az Stok", 
+            renk: "warning", 
+            ikon: "exclamation-triangle" 
+        };
+    } 
+    // Stok 5'ten fazla ise yeşil
+    else {
+        return { 
+            yazi: "Yeterli Stok", 
+            renk: "success", 
+            ikon: "check-circle" 
+        };
+    }
+}
+
+// ==========================================
+// API'den kitapları çek
+// ==========================================
+async function kitaplariGetir(aramaKelimesi = "") {
+    yukleniyorGoster(true);
+    
+    try {
+        // URL'i hazırla - arama varsa search endpoint'ini kullan
+        let url = apiBase;
+        if (aramaKelimesi) {
+            url = apiBase + "/search?query=" + encodeURIComponent(aramaKelimesi);
+        }
+        
+        console.log("API'ye istek gönderiliyor:", url); // Debug için
+        
+        // Fetch ile veri çek
+        const cevap = await fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        console.log("API cevap durumu:", cevap.status); // Debug için
+        
+        // Hata kontrolü
+        if (!cevap.ok) {
+            throw new Error("API hatası: " + cevap.status);
+        }
+        
+        // JSON'a çevir
+        tumKitaplar = await cevap.json();
+        console.log("Gelen kitap sayısı:", tumKitaplar.length); // Debug için
+        
+        return tumKitaplar;
+        
+    } catch (hata) {
+        console.error("Kitaplar yüklenirken hata:", hata);
+        toastGoster("Kitaplar yüklenirken hata oluştu! API çalışıyor mu kontrol edin.", "Hata");
+        tumKitaplar = [];
+        return [];
+    } finally {
+        yukleniyorGoster(false);
+    }
+}
+
+// ==========================================
+// Kitapları ekrana bas
+// ==========================================
+function kitaplariEkranaYaz(kitaplar) {
+    const tbody = document.getElementById("booksBody");
+    const sayac = document.getElementById("resultCount");
+    
+    // Kaç kitap var göster
+    sayac.textContent = kitaplar.length + " kitap bulundu";
+    
+    // Eğer kitap yoksa
+    if (kitaplar.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Henüz hiç kitap eklenmemiş veya arama sonucu bulunamadı</td></tr>';
+        return;
+    }
+    
+    // Tabloyu temizle
+    tbody.innerHTML = "";
+    
+    // Her kitap için bir satır oluştur
+    kitaplar.forEach(function(kitap) {
+        const durum = stokDurumuGetir(kitap.stockCount);
+        
+        // Yeni satır oluştur
+        const satir = document.createElement("tr");
+        
+        // Satırın içeriğini doldur
+        satir.innerHTML = `
+            <td class="text-muted">${kitap.id}</td>
+            <td><strong>${kitap.title}</strong></td>
+            <td>${kitap.author}</td>
+            <td><span class="badge bg-info">${kitap.genre || '-'}</span></td>
+            <td><small class="text-muted">${kitap.isbn || '-'}</small></td>
+            <td>${kitap.publishYear || '-'}</td>
+            <td><span class="badge bg-secondary">${kitap.stockCount}</span></td>
+            <td>
+                <span class="badge bg-${durum.renk}">
+                    <i class="bi bi-${durum.ikon}"></i> ${durum.yazi}
+                </span>
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <button onclick="oduncAl(${kitap.id})" class="btn btn-outline-primary" 
+                            ${kitap.stockCount <= 0 ? 'disabled' : ''} 
+                            title="Ödünç Al">
+                        <i class="bi bi-box-arrow-right"></i>
+                    </button>
+                    <button onclick="iadeEt(${kitap.id})" class="btn btn-outline-success" 
+                            title="Geri Ver">
+                        <i class="bi bi-box-arrow-in-left"></i>
+                    </button>
+                    <a href='/Books/Details?id=${kitap.id}' class="btn btn-outline-info" 
+                       title="Detaylar">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <a href='/Books/Edit?id=${kitap.id}' class="btn btn-outline-warning" 
+                       title="Düzenle">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    <button onclick="kitapSil(${kitap.id}, '${kitap.title.replace(/'/g, "\\'")}' )" 
+                            class="btn btn-outline-danger" 
+                            title="Sil">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                </div>
+            </td>
+        `;
+        
+        // Satırı tabloya ekle
+        tbody.appendChild(satir);
+    });
+}
+
+// ==========================================
+// Filtreleri uygula
+// ==========================================
+function filtreleriUygula() {
+    let filtreliKitaplar = [...tumKitaplar]; // Kopya oluştur
+    
+    const seciliTur = document.getElementById("genreFilter").value;
+    const seciliStok = document.getElementById("stockFilter").value;
+    
+    // Tür filtresini uygula
+    if (seciliTur) {
+        filtreliKitaplar = filtreliKitaplar.filter(function(kitap) {
+            return kitap.genre === seciliTur;
+        });
+    }
+    
+    // Stok filtresini uygula
+    if (seciliStok === "instock") {
+        // Stokta var (5'ten fazla)
+        filtreliKitaplar = filtreliKitaplar.filter(k => k.stockCount > 5);
+    } else if (seciliStok === "lowstock") {
+        // Az stok (1-5 arası)
+        filtreliKitaplar = filtreliKitaplar.filter(k => k.stockCount >= 1 && k.stockCount <= 5);
+    } else if (seciliStok === "outofstock") {
+        // Tükendi (0)
+        filtreliKitaplar = filtreliKitaplar.filter(k => k.stockCount === 0);
+    }
+    
+    // Filtrelenmiş kitapları göster
+    kitaplariEkranaYaz(filtreliKitaplar);
+}
+
+// ==========================================
+// Tür filtresini doldur (dropdown'a türleri ekle)
+// ==========================================
+function turFiltresiniDoldur() {
+    const selectElement = document.getElementById("genreFilter");
+    const mevcutDeger = selectElement.value; // Seçili değeri sakla
+    
+    // Benzersiz türleri bul (boş olmayanlar)
+    const turler = [...new Set(tumKitaplar.map(k => k.genre))].filter(t => t);
+    
+    // Select'i temizle ve "Tüm Türler"i ekle
+    selectElement.innerHTML = '<option value="">Tüm Türler</option>';
+    
+    // Her tür için option ekle
+    turler.forEach(function(tur) {
+        const option = document.createElement("option");
+        option.value = tur;
+        option.textContent = tur;
+        selectElement.appendChild(option);
+    });
+    
+    // Önceki seçimi geri yükle
+    selectElement.value = mevcutDeger;
+}
+
+// ==========================================
+// Kitap silme işlemi
+// ==========================================
+async function kitapSil(id, kitapAdi) {
+    // Kullanıcıya sor
+    const onay = confirm("'" + kitapAdi + "' kitabını silmek istediğinize emin misiniz?\n\nBu işlem geri alınamaz!");
+    
+    if (!onay) {
+        return; // İptal edildiyse çık
+    }
+    
+    try {
+        console.log("Kitap siliniyor, ID:", id); // Debug
+        
+        // API'ye DELETE isteği gönder
+        const cevap = await fetch(apiBase + "/" + id, { 
+            method: "DELETE", 
+            mode: "cors" 
+        });
+        
+        console.log("Silme cevabı:", cevap.status); // Debug
+        
+        if (cevap.ok) {
+            toastGoster("Kitap başarıyla silindi!", "Başarılı");
+            // Listeyi yenile
+            await kitaplariGetir();
+            turFiltresiniDoldur();
+            kitaplariEkranaYaz(tumKitaplar);
+        } else {
+            throw new Error("Silme işlemi başarısız");
+        }
+    } catch (hata) {
+        console.error("Silme hatası:", hata);
+        toastGoster("Kitap silinirken hata oluştu!", "Hata");
+    }
+}
+
+// ==========================================
+// Ödünç alma işlemi
+// ==========================================
+async function oduncAl(id) {
+    try {
+        const cevap = await fetch(apiBase + "/" + id + "/borrow", { 
+            method: "PUT", 
+            mode: "cors" 
+        });
+        
+        if (!cevap.ok) {
+            const veri = await cevap.json().catch(() => ({}));
+            if (veri.message === "StockEmpty") {
+                toastGoster("Stokta kitap yok!", "Uyarı");
+            } else {
+                throw new Error();
+            }
+        } else {
+            toastGoster("Kitap ödünç verildi", "Başarılı");
+            // Listeyi yenile
+            await kitaplariGetir();
+            kitaplariEkranaYaz(tumKitaplar);
+        }
+    } catch (hata) {
+        console.error("Ödünç alma hatası:", hata);
+        toastGoster("İşlem başarısız!", "Hata");
+    }
+}
+
+// ==========================================
+// İade etme işlemi
+// ==========================================
+async function iadeEt(id) {
+    try {
+        const cevap = await fetch(apiBase + "/" + id + "/return", { 
+            method: "PUT", 
+            mode: "cors" 
+        });
+        
+        if (cevap.ok) {
+            toastGoster("Kitap iade edildi", "Başarılı");
+            // Listeyi yenile
+            await kitaplariGetir();
+            kitaplariEkranaYaz(tumKitaplar);
+        } else {
+            throw new Error();
+        }
+    } catch (hata) {
+        console.error("İade hatası:", hata);
+        toastGoster("İşlem başarısız!", "Hata");
+    }
+}
+
+// ==========================================
+// Olay dinleyicileri (Event Listeners)
+// ==========================================
+
+// Arama kutusunda Enter tuşuna basınca ara
+document.getElementById("searchInput").addEventListener("keyup", async function(e) {
+    if (e.key === "Enter") {
+        const aramaKelimesi = e.target.value;
+        await kitaplariGetir(aramaKelimesi);
+        turFiltresiniDoldur();
+        kitaplariEkranaYaz(tumKitaplar);
+    }
+});
+
+// Yenile butonuna tıklayınca
+document.getElementById("refreshBtn").addEventListener("click", async function() {
+    // Filtreleri temizle
+    document.getElementById("searchInput").value = "";
+    document.getElementById("genreFilter").value = "";
+    document.getElementById("stockFilter").value = "";
+    
+    // Tüm kitapları yeniden yükle
+    await kitaplariGetir();
+    turFiltresiniDoldur();
+    kitaplariEkranaYaz(tumKitaplar);
+});
+
+// Tür filtresi değişince
+document.getElementById("genreFilter").addEventListener("change", filtreleriUygula);
+
+// Stok filtresi değişince
+document.getElementById("stockFilter").addEventListener("change", filtreleriUygula);
+
+// ==========================================
+// Sayfa yüklendiğinde çalışacak kod
+// ==========================================
+window.addEventListener('DOMContentLoaded', async function() {
+    console.log("Sayfa yüklendi, kitaplar çekiliyor..."); // Debug
+    
+    // Kitapları yükle
+    await kitaplariGetir();
+    
+    // Tür filtresini doldur
+    turFiltresiniDoldur();
+    
+    // Kitapları ekrana bas
+    kitaplariEkranaYaz(tumKitaplar);
+    
+    console.log("İlk yükleme tamamlandı"); // Debug
+});
+</script>

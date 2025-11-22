@@ -1,0 +1,226 @@
+@{
+    ViewData["Title"] = "Kitap Düzenle";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <!-- Başlık -->
+            <div class="mb-4">
+                <h1><i class="bi bi-pencil"></i> Kitap Düzenle</h1>
+                <p class="text-muted">Kitap bilgilerini güncelleyin</p>
+            </div>
+
+            <!-- Yükleniyor -->
+            <div id="loadingDiv" class="text-center my-5">
+                <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                </div>
+                <p class="mt-3">Kitap bilgileri yükleniyor...</p>
+            </div>
+
+            <!-- Form (başlangıçta gizli) -->
+            <div id="formDiv" style="display:none;">
+                <div class="card">
+                    <div class="card-body">
+                        <form id="editForm">
+                            <input type="hidden" id="bookId" name="id">
+                            
+                            <div class="row">
+                                <!-- Kitap Adı -->
+                                <div class="col-md-12 mb-3">
+                                    <label for="title" class="form-label">
+                                        <i class="bi bi-book"></i> Kitap Adı *
+                                    </label>
+                                    <input type="text" class="form-control" id="title" name="title" required>
+                                </div>
+
+                                <!-- Yazar -->
+                                <div class="col-md-12 mb-3">
+                                    <label for="author" class="form-label">
+                                        <i class="bi bi-person"></i> Yazar *
+                                    </label>
+                                    <input type="text" class="form-control" id="author" name="author" required>
+                                </div>
+
+                                <!-- Tür -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="genre" class="form-label">
+                                        <i class="bi bi-tag"></i> Tür
+                                    </label>
+                                    <input type="text" class="form-control" id="genre" name="genre">
+                                </div>
+
+                                <!-- ISBN -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="isbn" class="form-label">
+                                        <i class="bi bi-upc"></i> ISBN
+                                    </label>
+                                    <input type="text" class="form-control" id="isbn" name="isbn">
+                                </div>
+
+                                <!-- Basım Yılı -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="publishYear" class="form-label">
+                                        <i class="bi bi-calendar"></i> Basım Yılı
+                                    </label>
+                                    <input type="number" class="form-control" id="publishYear" name="publishYear" 
+                                           min="1800" max="2024">
+                                </div>
+
+                                <!-- Stok Adedi -->
+                                <div class="col-md-6 mb-3">
+                                    <label for="stockCount" class="form-label">
+                                        <i class="bi bi-box-seam"></i> Stok Adedi *
+                                    </label>
+                                    <input type="number" class="form-control" id="stockCount" name="stockCount" 
+                                           min="0" required>
+                                </div>
+                            </div>
+
+                            <!-- Butonlar -->
+                            <div class="d-flex gap-2 mt-4">
+                                <button type="submit" class="btn btn-primary" id="submitBtn">
+                                    <i class="bi bi-check-circle"></i> Değişiklikleri Kaydet
+                                </button>
+                                <a href="/Books/Index" class="btn btn-secondary">
+                                    <i class="bi bi-x-circle"></i> İptal
+                                </a>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hata Mesajı (başlangıçta gizli) -->
+            <div id="errorDiv" class="alert alert-danger" style="display:none;">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Hata!</strong> <span id="errorMsg"></span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Bildirim -->
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast" role="alert">
+        <div class="toast-header">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong class="me-auto" id="toastTitle">Bildirim</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastBody"></div>
+    </div>
+</div>
+
+<script>
+const apiBase = "http://localhost:5045/api/books";
+
+// Toast göster
+function showToast(message, title = "Bildirim") {
+    const toastEl = document.getElementById('liveToast');
+    document.getElementById('toastTitle').textContent = title;
+    document.getElementById('toastBody').textContent = message;
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}
+
+// URL'den ID al
+function getBookId() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("id");
+}
+
+// Hata göster
+function showError(message) {
+    document.getElementById("loadingDiv").style.display = "none";
+    document.getElementById("errorMsg").textContent = message;
+    document.getElementById("errorDiv").style.display = "block";
+}
+
+// Kitap bilgilerini yükle
+async function loadBook() {
+    const id = getBookId();
+    
+    if (!id) {
+        showError("Kitap ID'si belirtilmemiş!");
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${apiBase}/${id}`, {mode:'cors'});
+        
+        if (!res.ok) {
+            throw new Error("Kitap bulunamadı");
+        }
+        
+        const book = await res.json();
+        
+        // Formu doldur
+        document.getElementById("bookId").value = book.id;
+        document.getElementById("title").value = book.title;
+        document.getElementById("author").value = book.author;
+        document.getElementById("genre").value = book.genre || "";
+        document.getElementById("isbn").value = book.isbn || "";
+        document.getElementById("publishYear").value = book.publishYear || "";
+        document.getElementById("stockCount").value = book.stockCount;
+        
+        // Formu göster
+        document.getElementById("loadingDiv").style.display = "none";
+        document.getElementById("formDiv").style.display = "block";
+        
+    } catch (error) {
+        showError("Kitap bilgileri yüklenirken hata oluştu!");
+    }
+}
+
+// Form submit
+document.getElementById("editForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    const form = e.target;
+    const submitBtn = document.getElementById("submitBtn");
+    
+    // Buton devre dışı
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Kaydediliyor...';
+    
+    // Veri hazırla
+    const bookData = {
+        id: parseInt(document.getElementById("bookId").value),
+        title: form.title.value.trim(),
+        author: form.author.value.trim(),
+        genre: form.genre.value.trim() || "",
+        isbn: form.isbn.value.trim() || "",
+        publishYear: parseInt(form.publishYear.value) || 0,
+        stockCount: parseInt(form.stockCount.value) || 0
+    };
+    
+    try {
+        const res = await fetch(`${apiBase}/${bookData.id}`, {
+            method: "PUT",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify(bookData),
+            mode: 'cors'
+        });
+        
+        if (res.ok) {
+            showToast("Kitap başarıyla güncellendi!", "Başarılı");
+            // 1 saniye bekle ve yönlendir
+            setTimeout(() => {
+                window.location.href = "/Books/Index";
+            }, 1000);
+        } else {
+            throw new Error("API hatası");
+        }
+    } catch (error) {
+        showToast("Güncelleme sırasında hata oluştu!", "Hata");
+        // Butonu tekrar aktif et
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Değişiklikleri Kaydet';
+    }
+});
+
+// Sayfa yüklendiğinde çalıştır
+loadBook();
+</script>

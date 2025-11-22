@@ -1,0 +1,33 @@
+# Build sonuçları
+bin/
+obj/
+*.dll
+*.exe
+*.pdb
+
+# Veritabanı dosyası
+*.db
+*.db-shm
+*.db-wal
+
+# IDE ayarları
+.vscode/
+.vs/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# NuGet paketleri
+packages/
+*.nupkg
+
+# Publish profilleri
+*.pubxml
+*.publishproj
+
+# Log dosyaları
+*.log
+
+# Cache dosyaları
+.cache/

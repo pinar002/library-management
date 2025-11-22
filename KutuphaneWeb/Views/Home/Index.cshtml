@@ -1,0 +1,233 @@
+﻿@{
+    ViewData["Title"] = "Ana Sayfa";
+}
+
+<div class="container mt-5">
+    <!-- Hoş geldiniz başlığı -->
+    <div class="text-center mb-5">
+        <h1 class="display-4">
+            <i class="bi bi-book-fill text-primary"></i>
+            Kütüphane Yönetim Sistemi
+        </h1>
+        <p class="lead text-muted">Kitaplarınızı kolayca yönetin</p>
+    </div>
+
+    <!-- İstatistik kartları - Sadece 2 tane -->
+    <div class="row mb-4 justify-content-center">
+        <!-- Toplam kitap sayısı -->
+        <div class="col-md-4 mb-3">
+            <div class="card text-white bg-primary h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-book" style="font-size: 4rem;"></i>
+                    <h2 class="mt-3 display-4" id="totalBooks">-</h2>
+                    <p class="card-text fs-5">Toplam Kitap Sayısı</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Toplam stok adedi -->
+        <div class="col-md-4 mb-3">
+            <div class="card text-white bg-success h-100">
+                <div class="card-body text-center">
+                    <i class="bi bi-box-seam" style="font-size: 4rem;"></i>
+                    <h2 class="mt-3 display-4" id="totalStock">-</h2>
+                    <p class="card-text fs-5">Toplam Stok Adedi</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hızlı işlemler kartı -->
+    <div class="row mb-4">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-lightning"></i> Hızlı İşlemler</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-md-4 mb-3">
+                            <a href="/Books/Index" class="btn btn-outline-primary btn-lg w-100">
+                                <i class="bi bi-list-ul d-block" style="font-size: 2rem;"></i>
+                                Tüm Kitapları Görüntüle
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <a href="/Books/Create" class="btn btn-outline-success btn-lg w-100">
+                                <i class="bi bi-plus-circle d-block" style="font-size: 2rem;"></i>
+                                Yeni Kitap Ekle
+                            </a>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <button onclick="istatistikleriYukle()" class="btn btn-outline-secondary btn-lg w-100">
+                                <i class="bi bi-arrow-clockwise d-block" style="font-size: 2rem;"></i>
+                                İstatistikleri Yenile
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Son eklenen kitaplar -->
+    <div class="row">
+        <div class="col-md-12">
+            <div class="card">
+                <div class="card-header bg-dark text-white">
+                    <h5 class="mb-0"><i class="bi bi-clock-history"></i> Son Eklenen Kitaplar</h5>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Kitap Adı</th>
+                                    <th>Yazar</th>
+                                    <th>Tür</th>
+                                    <th>Stok</th>
+                                    <th>Durum</th>
+                                    <th>İşlem</th>
+                                </tr>
+                            </thead>
+                            <tbody id="recentBooks">
+                                <tr>
+                                    <td colspan="6" class="text-center">
+                                        <div class="spinner-border text-primary" role="status">
+                                            <span class="visually-hidden">Yükleniyor...</span>
+                                        </div>
+                                        <p class="mt-2">Yükleniyor...</p>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// API'nin adresi (API'nin çalıştığı port: 5045)
+const apiBase = "http://localhost:5045/api/books";
+
+// ==========================================
+// Stok durumu fonksiyonu
+// ==========================================
+function stokDurumuGetir(stok) {
+    // Stok 0 ise tükendi
+    if (stok === 0) {
+        return { 
+            yazi: "Tükendi", 
+            renk: "danger", 
+            ikon: "x-circle" 
+        };
+    } 
+    // Stok 1-5 arası ise az stok
+    else if (stok >= 1 && stok <= 5) {
+        return { 
+            yazi: "Az Stok", 
+            renk: "warning", 
+            ikon: "exclamation-triangle" 
+        };
+    } 
+    // Stok 5'ten fazla ise yeterli
+    else {
+        return { 
+            yazi: "Yeterli Stok", 
+            renk: "success", 
+            ikon: "check-circle" 
+        };
+    }
+}
+
+// ==========================================
+// İstatistikleri yükle
+// ==========================================
+async function istatistikleriYukle() {
+    try {
+        console.log("İstatistikler yükleniyor..."); // Debug için
+        
+        // API'den tüm kitapları çek
+        const cevap = await fetch(apiBase, {
+            mode: 'cors',
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
+        
+        if(!cevap.ok) {
+            throw new Error("API hatası");
+        }
+        
+        const kitaplar = await cevap.json();
+        console.log("Gelen kitap sayısı:", kitaplar.length); // Debug için
+        
+        // Toplam kitap sayısını hesapla
+        const toplamKitap = kitaplar.length;
+        
+        // Toplam stok sayısını hesapla (tüm kitapların stoklarını topla)
+        const toplamStok = kitaplar.reduce(function(toplam, kitap) {
+            return toplam + kitap.stockCount;
+        }, 0);
+        
+        // Ekrana yaz
+        document.getElementById('totalBooks').textContent = toplamKitap;
+        document.getElementById('totalStock').textContent = toplamStok;
+        
+        // Son 5 kitabı göster (en son eklenenleri)
+        const sonKitaplar = kitaplar.slice(-5).reverse(); // Son 5'i al ve tersine çevir
+        const tbody = document.getElementById('recentBooks');
+        tbody.innerHTML = ''; // Tabloyu temizle
+        
+        // Eğer hiç kitap yoksa
+        if (sonKitaplar.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center">Henüz kitap eklenmemiş</td></tr>';
+            return;
+        }
+        
+        // Her kitap için satır oluştur
+        sonKitaplar.forEach(function(kitap) {
+            const durum = stokDurumuGetir(kitap.stockCount);
+            
+            const satir = document.createElement('tr');
+            satir.innerHTML = `
+                <td><strong>${kitap.title}</strong></td>
+                <td>${kitap.author}</td>
+                <td><span class="badge bg-info">${kitap.genre || '-'}</span></td>
+                <td><span class="badge bg-secondary">${kitap.stockCount}</span></td>
+                <td>
+                    <span class="badge bg-${durum.renk}">
+                        <i class="bi bi-${durum.ikon}"></i> ${durum.yazi}
+                    </span>
+                </td>
+                <td>
+                    <a href="/Books/Edit?id=${kitap.id}" class="btn btn-sm btn-outline-primary">Düzenle</a>
+                </td>
+            `;
+            
+            tbody.appendChild(satir);
+        });
+        
+    } catch (hata) {
+        console.error('İstatistik yüklenemedi:', hata);
+        
+        // Hata durumunda soru işareti göster
+        document.getElementById('totalBooks').textContent = '?';
+        document.getElementById('totalStock').textContent = '?';
+        
+        // Tabloya hata mesajı yaz
+        document.getElementById('recentBooks').innerHTML = 
+            '<tr><td colspan="6" class="text-center text-danger">Veriler yüklenirken hata oluştu. API çalışıyor mu kontrol edin.</td></tr>';
+    }
+}
+
+// ==========================================
+// Sayfa yüklendiğinde otomatik çalış
+// ==========================================
+window.addEventListener('DOMContentLoaded', function() {
+    console.log("Ana sayfa yüklendi, istatistikler çekiliyor..."); // Debug
+    istatistikleriYukle();
+});
+</script>

@@ -1,0 +1,277 @@
+@{
+    ViewData["Title"] = "Kitap Detayları";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-10">
+            
+            <div id="loadingDiv" class="text-center my-5">
+                <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                </div>
+                <p class="mt-3">Kitap bilgileri yükleniyor...</p>
+            </div>
+
+            <div id="detailDiv" style="display:none;">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h1><i class="bi bi-book"></i> Kitap Detayları</h1>
+                    <a href="/Books/Index" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Geri Dön
+                    </a>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="card mb-4">
+                            <div class="card-header bg-primary text-white">
+                                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Genel Bilgiler</h5>
+                            </div>
+                            <div class="card-body">
+                                <table class="table table-borderless">
+                                    <tr>
+                                        <td style="width: 150px;"><strong><i class="bi bi-hash"></i> ID:</strong></td>
+                                        <td id="detailId">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><i class="bi bi-book"></i> Kitap Adı:</strong></td>
+                                        <td id="detailTitle" class="fs-5 text-primary">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><i class="bi bi-person"></i> Yazar:</strong></td>
+                                        <td id="detailAuthor" class="fs-5">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><i class="bi bi-tag"></i> Tür:</strong></td>
+                                        <td><span id="detailGenre" class="badge bg-info fs-6">-</span></td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><i class="bi bi-upc"></i> ISBN:</strong></td>
+                                        <td id="detailISBN" class="text-muted">-</td>
+                                    </tr>
+                                    <tr>
+                                        <td><strong><i class="bi bi-calendar"></i> Basım Yılı:</strong></td>
+                                        <td id="detailYear">-</td>
+                                    </tr>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-md-4">
+                        <div class="card mb-4" id="stockCard">
+                            <div class="card-header bg-dark text-white">
+                                <h5 class="mb-0"><i class="bi bi-box-seam"></i> Stok Durumu</h5>
+                            </div>
+                            <div class="card-body text-center">
+                                <div class="display-4 mb-3" id="detailStock">0</div>
+                                <span id="detailStockBadge" class="badge fs-6">-</span>
+                                <p class="mt-3 text-muted">Mevcut Adet</p>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header bg-dark text-white">
+                                <h5 class="mb-0"><i class="bi bi-gear"></i> İşlemler</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="d-grid gap-2">
+                                    <button onclick="borrowBook()" id="borrowBtn" class="btn btn-primary">
+                                        <i class="bi bi-box-arrow-right"></i> Ödünç Al
+                                    </button>
+                                    <button onclick="returnBook()" class="btn btn-success">
+                                        <i class="bi bi-box-arrow-in-left"></i> Geri Ver
+                                    </button>
+                                    <hr>
+                                    <a href="" id="editLink" class="btn btn-warning">
+                                        <i class="bi bi-pencil"></i> Düzenle
+                                    </a>
+                                    <button onclick="deleteBook()" class="btn btn-danger">
+                                        <i class="bi bi-trash"></i> Sil
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="errorDiv" class="alert alert-danger" style="display:none;">
+                <i class="bi bi-exclamation-triangle"></i>
+                <strong>Hata!</strong> <span id="errorMsg"></span>
+                <br><br>
+                <a href="/Books/Index" class="btn btn-secondary">Kitap Listesine Dön</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast" role="alert">
+        <div class="toast-header">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong class="me-auto" id="toastTitle">Bildirim</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastBody"></div>
+    </div>
+</div>
+
+<script>
+const apiBase = "http://localhost:5045/api/books";
+let currentBook = null;
+
+function showToast(message, title = "Bildirim") {
+    const toastEl = document.getElementById('liveToast');
+    document.getElementById('toastTitle').textContent = title;
+    document.getElementById('toastBody').textContent = message;
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}
+
+function getBookId() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("id");
+}
+
+function showError(message) {
+    document.getElementById("loadingDiv").style.display = "none";
+    document.getElementById("errorMsg").textContent = message;
+    document.getElementById("errorDiv").style.display = "block";
+}
+
+function getStockStatus(stock) {
+    if (stock === 0) {
+        return { text: "Tükendi", class: "danger" };
+    } else if (stock >= 1 && stock <= 5) {
+        return { text: "Az Stok", class: "warning" };
+    } else {
+        return { text: "Yeterli Stok", class: "success" };
+    }
+}
+
+async function loadBook() {
+    const id = getBookId();
+    
+    if (!id) {
+        showError("Kitap ID'si belirtilmemiş!");
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${apiBase}/${id}`, {mode:'cors'});
+        
+        if (!res.ok) {
+            throw new Error("Kitap bulunamadı");
+        }
+        
+        currentBook = await res.json();
+        renderBook(currentBook);
+        
+    } catch (error) {
+        showError("Kitap bilgileri yüklenirken hata oluştu!");
+    }
+}
+
+function renderBook(book) {
+    document.getElementById("detailId").textContent = book.id;
+    document.getElementById("detailTitle").textContent = book.title;
+    document.getElementById("detailAuthor").textContent = book.author;
+    document.getElementById("detailGenre").textContent = book.genre || "Belirtilmemiş";
+    document.getElementById("detailISBN").textContent = book.isbn || "Belirtilmemiş";
+    document.getElementById("detailYear").textContent = book.publishYear || "Belirtilmemiş";
+    document.getElementById("detailStock").textContent = book.stockCount;
+    
+    const status = getStockStatus(book.stockCount);
+    const badge = document.getElementById("detailStockBadge");
+    badge.textContent = status.text;
+    badge.className = `badge bg-${status.class} fs-6`;
+    
+    const stockCard = document.getElementById("stockCard");
+    stockCard.className = `card mb-4 border-${status.class}`;
+    
+    document.getElementById("editLink").href = `/Books/Edit?id=${book.id}`;
+    
+    const borrowBtn = document.getElementById("borrowBtn");
+    if (book.stockCount <= 0) {
+        borrowBtn.disabled = true;
+        borrowBtn.innerHTML = '<i class="bi bi-x-circle"></i> Stokta Yok';
+    }
+    
+    document.getElementById("loadingDiv").style.display = "none";
+    document.getElementById("detailDiv").style.display = "block";
+}
+
+async function borrowBook() {
+    if (!currentBook) return;
+    
+    try {
+        const res = await fetch(`${apiBase}/${currentBook.id}/borrow`, { 
+            method: "PUT", 
+            mode: "cors" 
+        });
+        
+        if (!res.ok) {
+            const data = await res.json().catch(() => ({}));
+            if (data.message === "StockEmpty") {
+                showToast("Stokta kitap yok!", "Uyarı");
+            } else {
+                throw new Error();
+            }
+        } else {
+            showToast("Kitap ödünç verildi", "Başarılı");
+            await loadBook();
+        }
+    } catch {
+        showToast("İşlem başarısız", "Hata");
+    }
+}
+
+async function returnBook() {
+    if (!currentBook) return;
+    
+    try {
+        const res = await fetch(`${apiBase}/${currentBook.id}/return`, { 
+            method: "PUT", 
+            mode: "cors" 
+        });
+        
+        if (res.ok) {
+            showToast("Kitap geri alındı", "Başarılı");
+            await loadBook();
+        } else {
+            throw new Error();
+        }
+    } catch {
+        showToast("İşlem başarısız", "Hata");
+    }
+}
+
+async function deleteBook() {
+    if (!currentBook) return;
+    
+    if (!confirm(`"${currentBook.title}" kitabını silmek istediğinizden emin misiniz?`)) {
+        return;
+    }
+    
+    try {
+        const res = await fetch(`${apiBase}/${currentBook.id}`, { 
+            method: "DELETE", 
+            mode: "cors" 
+        });
+        
+        if (res.ok) {
+            showToast("Kitap başarıyla silindi", "Başarılı");
+            setTimeout(() => {
+                window.location.href = "/Books/Index";
+            }, 1000);
+        } else {
+            throw new Error();
+        }
+    } catch {
+        showToast("Kitap silinirken hata oluştu", "Hata");
+    }
+}
+
+loadBook();
+</script>

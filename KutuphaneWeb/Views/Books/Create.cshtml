@@ -1,0 +1,176 @@
+@{
+    ViewData["Title"] = "Yeni Kitap Ekle";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="mb-4">
+                <h1><i class="bi bi-plus-circle"></i> Yeni Kitap Ekle</h1>
+                <p class="text-muted">Kütüphaneye yeni bir kitap ekleyin</p>
+            </div>
+
+            <div class="card">
+                <div class="card-body">
+                    <form id="createForm">
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <label for="title" class="form-label">
+                                    <i class="bi bi-book"></i> Kitap Adı *
+                                </label>
+                                <input type="text" class="form-control" id="title" name="title" 
+                                       placeholder="Örn: Suç ve Ceza" required>
+                                <div class="invalid-feedback">Kitap adı zorunludur</div>
+                            </div>
+
+                            <div class="col-md-12 mb-3">
+                                <label for="author" class="form-label">
+                                    <i class="bi bi-person"></i> Yazar *
+                                </label>
+                                <input type="text" class="form-control" id="author" name="author" 
+                                       placeholder="Örn: Fyodor Dostoyevski" required>
+                                <div class="invalid-feedback">Yazar adı zorunludur</div>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="genre" class="form-label">
+                                    <i class="bi bi-tag"></i> Tür
+                                </label>
+                                <input type="text" class="form-control" id="genre" name="genre" 
+                                       placeholder="Örn: Roman, Bilim Kurgu">
+                                <small class="text-muted">Opsiyonel</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="isbn" class="form-label">
+                                    <i class="bi bi-upc"></i> ISBN
+                                </label>
+                                <input type="text" class="form-control" id="isbn" name="isbn" 
+                                       placeholder="Örn: 978-3-16-148410-0">
+                                <small class="text-muted">Opsiyonel</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="publishYear" class="form-label">
+                                    <i class="bi bi-calendar"></i> Basım Yılı
+                                </label>
+                                <input type="number" class="form-control" id="publishYear" name="publishYear" 
+                                       placeholder="Örn: 2020" min="1800" max="2024">
+                                <small class="text-muted">1800-2024 arası</small>
+                            </div>
+
+                            <div class="col-md-6 mb-3">
+                                <label for="stockCount" class="form-label">
+                                    <i class="bi bi-box-seam"></i> Stok Adedi *
+                                </label>
+                                <input type="number" class="form-control" id="stockCount" name="stockCount" 
+                                       value="1" min="0" required>
+                                <small class="text-muted">Kaç adet var?</small>
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2 mt-4">
+                            <button type="submit" class="btn btn-success" id="submitBtn">
+                                <i class="bi bi-check-circle"></i> Kitabı Kaydet
+                            </button>
+                            <a href="/Books/Index" class="btn btn-secondary">
+                                <i class="bi bi-x-circle"></i> İptal
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-3 border-info">
+                <div class="card-body">
+                    <h6 class="card-title"><i class="bi bi-info-circle"></i> Bilgi</h6>
+                    <p class="card-text mb-0">
+                        <small>
+                            * ile işaretli alanlar zorunludur. 
+                            Diğer alanları boş bırakabilirsiniz.
+                        </small>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="liveToast" class="toast" role="alert">
+        <div class="toast-header">
+            <i class="bi bi-info-circle me-2"></i>
+            <strong class="me-auto" id="toastTitle">Bildirim</strong>
+            <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+        </div>
+        <div class="toast-body" id="toastBody"></div>
+    </div>
+</div>
+
+<script>
+const apiBase = "http://localhost:5045/api/books";
+
+function showToast(message, title = "Bildirim") {
+    const toastEl = document.getElementById('liveToast');
+    document.getElementById('toastTitle').textContent = title;
+    document.getElementById('toastBody').textContent = message;
+    const toast = new bootstrap.Toast(toastEl);
+    toast.show();
+}
+
+// Form submit
+document.getElementById("createForm").addEventListener("submit", async (e) => {
+    e.preventDefault();
+    
+    const form = e.target;
+    const submitBtn = document.getElementById("submitBtn");
+    
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Kaydediliyor...';
+
+    const bookData = {
+        title: form.title.value.trim(),
+        author: form.author.value.trim(),
+        genre: form.genre.value.trim() || "",
+        isbn: form.isbn.value.trim() || "",
+        publishYear: parseInt(form.publishYear.value) || 0,
+        stockCount: parseInt(form.stockCount.value) || 0
+    };
+    
+    try {
+        const res = await fetch(apiBase, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(bookData),
+            mode: "cors"
+        });
+        
+        if (res.ok) {
+            showToast("Kitap başarıyla eklendi!", "Başarılı");
+            setTimeout(() => {
+                window.location.href = "/Books/Index";
+            }, 1000);
+        } else {
+            throw new Error("API hatası");
+        }
+    } catch (error) {
+        showToast("Kitap eklenirken hata oluştu. Lütfen tekrar deneyin.", "Hata");
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Kitabı Kaydet';
+    }
+});
+
+(function () {
+    'use strict'
+    const forms = document.querySelectorAll('.needs-validation')
+    Array.from(forms).forEach(form => {
+        form.addEventListener('submit', event => {
+            if (!form.checkValidity()) {
+                event.preventDefault()
+                event.stopPropagation()
+            }
+            form.classList.add('was-validated')
+        }, false)
+    })
+})()
+</script>
