@@ -5,6 +5,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Servisleri ekle
 builder.Services.AddControllers();
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
 // Veritabanı bağlantısı
 builder.Services.AddDbContext<AppDbContext>(options =>
@@ -30,5 +32,11 @@ app.UseCors("AllowFrontend");
 app.UseAuthorization();
 
 app.MapControllers();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.Run();
