@@ -1,0 +1,72 @@
+@{
+    ViewData["Title"] = "Üyeler";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-people-fill"></i> Üyeler</h2>
+        <a href="/Members/Create" class="btn btn-primary">
+            <i class="bi bi-person-plus-fill"></i> Yeni Üye
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div id="loading" class="text-center p-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover d-none" id="membersTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Ad Soyad</th>
+                            <th>Email</th>
+                            <th>Telefon</th>
+                            <th>Kayıt Tarihi</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadMembers() {
+        try {
+            const response = await fetch('http://localhost:5045/api/members');
+            const data = await response.json();
+            
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach(item => {
+                const date = new Date(item.registrationDate).toLocaleDateString("tr-TR");
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.id}</td>
+                    <td class="fw-bold">${item.name}</td>
+                    <td>${item.email}</td>
+                    <td>${item.phone}</td>
+                    <td>${date}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('membersTable').classList.remove('d-none');
+            
+        } catch (error) {
+            console.error('Error:', error);
+            document.getElementById('loading').innerHTML = '<div class="alert alert-danger">Veriler yüklenemedi.</div>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadMembers);
+</script>

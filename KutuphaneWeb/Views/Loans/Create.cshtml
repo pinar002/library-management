@@ -1,0 +1,95 @@
+@{
+    ViewData["Title"] = "Kitap Ödünç Ver";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-white py-3">
+                    <h4 class="mb-0"><i class="bi bi-journal-plus"></i> Kitap Ödünç Ver</h4>
+                </div>
+                <div class="card-body">
+                    <form id="createForm">
+                        <div class="mb-3">
+                            <label class="form-label">Üye Seçin</label>
+                            <select id="memberSelect" class="form-select" name="memberId" required>
+                                <option value="">Yükleniyor...</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Kitap Seçin</label>
+                            <select id="bookSelect" class="form-select" name="bookId" required>
+                                <option value="">Yükleniyor...</option>
+                            </select>
+                            <div class="form-text">Sadece stokta olan kitaplar listelenir.</div>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-success">Ödünç Ver</button>
+                            <a href="/Loans/Index" class="btn btn-secondary">İptal</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    async function loadData() {
+        // Load Members
+        const membersRes = await fetch('http://localhost:5045/api/members');
+        const members = await membersRes.json();
+        
+        const memSelect = document.getElementById('memberSelect');
+        memSelect.innerHTML = '<option value="">Bir üye seçin...</option>';
+        members.forEach(m => {
+            memSelect.innerHTML += `<option value="${m.id}">${m.name} (${m.phone})</option>`;
+        });
+
+        // Load Books (Need to filter stock > 0 ideally, or handle on server)
+        const booksRes = await fetch('http://localhost:5045/api/books');
+        const books = await booksRes.json();
+        
+        const bookSelect = document.getElementById('bookSelect');
+        bookSelect.innerHTML = '<option value="">Bir kitap seçin...</option>';
+        
+        books.forEach(b => {
+            // Simple client-side stock check visualisation
+            if (b.stockCount > 0) {
+                bookSelect.innerHTML += `<option value="${b.id}">${b.title} (Stok: ${b.stockCount})</option>`;
+            }
+        });
+    }
+
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(e.target));
+        
+        // Convert to ints
+        data.memberId = parseInt(data.memberId);
+        data.bookId = parseInt(data.bookId);
+
+        try {
+            const response = await fetch('http://localhost:5045/api/loans', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if(response.ok) {
+                alert('İşlem başarılı!');
+                window.location.href = '/Loans/Index';
+            } else {
+                const err = await response.text();
+                alert('Hata: ' + err);
+            }
+        } catch(error) {
+            alert('Bağlantı hatası!');
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', loadData);
+</script>

@@ -191,11 +191,15 @@ async function istatistikleriYukle() {
         sonKitaplar.forEach(function(kitap) {
             const durum = stokDurumuGetir(kitap.stockCount);
             
+            // İlişkili verileri düzenle
+            const yazarlar = kitap.authors ? kitap.authors.map(a => a.name).join(', ') : '-';
+            const kategoriler = kitap.categories ? kitap.categories.map(c => c.name).join(', ') : '-';
+            
             const satir = document.createElement('tr');
             satir.innerHTML = `
                 <td><strong>${kitap.title}</strong></td>
-                <td>${kitap.author}</td>
-                <td><span class="badge bg-info">${kitap.genre || '-'}</span></td>
+                <td>${yazarlar}</td>
+                <td><span class="badge bg-info">${kategoriler}</span></td>
                 <td><span class="badge bg-secondary">${kitap.stockCount}</span></td>
                 <td>
                     <span class="badge bg-${durum.renk}">

@@ -158,7 +158,11 @@ namespace KutuphaneAPI.Controllers
         public async Task<ActionResult<IEnumerable<Book>>> Search([FromQuery] string query)
         {
             if (string.IsNullOrWhiteSpace(query))
-                return await _db.Books.ToListAsync();
+                return await _db.Books
+                    .Include(b => b.Authors)
+                    .Include(b => b.Publisher)
+                    .Include(b => b.Categories)
+                    .ToListAsync();
 
             query = query.ToLower();
 

@@ -76,6 +76,7 @@
                         <th style="width: 50px;">ID</th>
                         <th>Kitap Adı</th>
                         <th>Yazar</th>
+                        <th>Yayınevi</th>
                         <th>Tür</th>
                         <th style="width: 150px;">ISBN</th>
                         <th style="width: 80px;">Yıl</th>
@@ -236,7 +237,7 @@ function kitaplariEkranaYaz(kitaplar) {
     
     // Eğer kitap yoksa
     if (kitaplar.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">Henüz hiç kitap eklenmemiş veya arama sonucu bulunamadı</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="10" class="text-center text-muted py-4">Henüz hiç kitap eklenmemiş veya arama sonucu bulunamadı</td></tr>';
         return;
     }
     
@@ -250,12 +251,18 @@ function kitaplariEkranaYaz(kitaplar) {
         // Yeni satır oluştur
         const satir = document.createElement("tr");
         
+        // İlişkili verileri düzenle
+        const yazarlar = kitap.authors ? kitap.authors.map(a => a.name).join(', ') : '-';
+        const kategoriler = kitap.categories ? kitap.categories.map(c => c.name).join(', ') : '-';
+        const yayinevi = kitap.publisher ? kitap.publisher.name : '-';
+
         // Satırın içeriğini doldur
         satir.innerHTML = `
             <td class="text-muted">${kitap.id}</td>
             <td><strong>${kitap.title}</strong></td>
-            <td>${kitap.author}</td>
-            <td><span class="badge bg-info">${kitap.genre || '-'}</span></td>
+            <td>${yazarlar}</td>
+            <td><small>${yayinevi}</small></td>
+            <td><span class="badge bg-info">${kategoriler}</span></td>
             <td><small class="text-muted">${kitap.isbn || '-'}</small></td>
             <td>${kitap.publishYear || '-'}</td>
             <td><span class="badge bg-secondary">${kitap.stockCount}</span></td>
@@ -309,7 +316,8 @@ function filtreleriUygula() {
     // Tür filtresini uygula
     if (seciliTur) {
         filtreliKitaplar = filtreliKitaplar.filter(function(kitap) {
-            return kitap.genre === seciliTur;
+            if (!kitap.categories) return false;
+            return kitap.categories.some(c => c.name === seciliTur);
         });
     }
     
@@ -337,7 +345,9 @@ function turFiltresiniDoldur() {
     const mevcutDeger = selectElement.value; // Seçili değeri sakla
     
     // Benzersiz türleri bul (boş olmayanlar)
-    const turler = [...new Set(tumKitaplar.map(k => k.genre))].filter(t => t);
+    // Benzersiz türleri bul (Category Name üzerinden)
+    const tumKategoriler = tumKitaplar.flatMap(k => k.categories ? k.categories.map(c => c.name) : []);
+    const turler = [...new Set(tumKategoriler)].filter(t => t);
     
     // Select'i temizle ve "Tüm Türler"i ekle
     selectElement.innerHTML = '<option value="">Tüm Türler</option>';

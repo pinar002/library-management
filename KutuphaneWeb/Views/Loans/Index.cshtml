@@ -1,0 +1,99 @@
+@{
+    ViewData["Title"] = "Ödünç İşlemleri";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-journal-arrow-up"></i> Ödünç Takip</h2>
+        <a href="/Loans/Create" class="btn btn-success">
+            <i class="bi bi-plus-circle"></i> Kitap Ödünç Ver
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div id="loading" class="text-center p-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                </div>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover d-none" id="loansTable">
+                    <thead>
+                        <tr>
+                            <th>Kitap</th>
+                            <th>Üye</th>
+                            <th>Veriliş Tarihi</th>
+                            <th>Durum</th>
+                            <th>İşlem</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const apiBase = "http://localhost:5045/api/loans";
+
+    async function loadLoans() {
+        try {
+            const response = await fetch(apiBase);
+            const data = await response.json();
+            
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach(item => {
+                const loanDate = new Date(item.loanDate).toLocaleDateString("tr-TR");
+                let statusBadge = '<span class="badge bg-warning text-dark">Ödünçte</span>';
+                let actionBtn = `<button onclick="returnBook(${item.id})" class="btn btn-sm btn-outline-primary">İade Al</button>`;
+
+                if (item.returnDate) {
+                    const retDate = new Date(item.returnDate).toLocaleDateString("tr-TR");
+                    statusBadge = `<span class="badge bg-success">İade Edildi (${retDate})</span>`;
+                    actionBtn = '';
+                }
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="fw-bold">${item.book?.title || 'Silinmiş Kitap'}</td>
+                    <td>${item.member?.name || 'Silinmiş Üye'}</td>
+                    <td>${loanDate}</td>
+                    <td>${statusBadge}</td>
+                    <td>${actionBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('loansTable').classList.remove('d-none');
+            
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    }
+
+    async function returnBook(id) {
+        if(!confirm('Bu kitabı iade almak istediğinize emin misiniz?')) return;
+
+        try {
+            const response = await fetch(`${apiBase}/${id}/return`, {
+                method: 'PUT'
+            });
+            if(response.ok) {
+                loadLoans(); // Refresh info
+            } else {
+                alert('İade işlemi başarısız!');
+            }
+        } catch(e) {
+            alert('Hata oluştu');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadLoans);
+</script>
