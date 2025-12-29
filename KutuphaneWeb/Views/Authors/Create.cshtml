@@ -1,0 +1,60 @@
+@{
+    ViewData["Title"] = "Yeni Yazar Ekle";
+}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header bg-white py-3">
+                    <h4 class="mb-0"><i class="bi bi-person-plus"></i> Yeni Yazar Ekle</h4>
+                </div>
+                <div class="card-body">
+                    <form id="createForm">
+                        <div class="mb-3">
+                            <label class="form-label">Yazar Adı *</label>
+                            <input type="text" class="form-control" name="name" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Biyografi</label>
+                            <textarea class="form-control" name="bio" rows="4"></textarea>
+                        </div>
+
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">Kaydet</button>
+                            <a href="/Authors/Index" class="btn btn-secondary">İptal</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.getElementById('createForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        
+        try {
+            const response = await fetch('http://localhost:5045/api/authors', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+            
+            if(response.ok) {
+                alert('Yazar başarıyla eklendi!');
+                window.location.href = '/Authors/Index';
+            } else {
+                alert('Bir hata oluştu!');
+            }
+        } catch(error) {
+            console.error('Error:', error);
+            alert('Bağlantı hatası!');
+        }
+    });
+</script>

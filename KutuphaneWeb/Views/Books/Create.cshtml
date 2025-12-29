@@ -14,6 +14,7 @@
                 <div class="card-body">
                     <form id="createForm">
                         <div class="row">
+                            <!-- Title -->
                             <div class="col-md-12 mb-3">
                                 <label for="title" class="form-label">
                                     <i class="bi bi-book"></i> Kitap Adı *
@@ -23,50 +24,62 @@
                                 <div class="invalid-feedback">Kitap adı zorunludur</div>
                             </div>
 
-                            <div class="col-md-12 mb-3">
-                                <label for="author" class="form-label">
-                                    <i class="bi bi-person"></i> Yazar *
-                                </label>
-                                <input type="text" class="form-control" id="author" name="author" 
-                                       placeholder="Örn: Fyodor Dostoyevski" required>
-                                <div class="invalid-feedback">Yazar adı zorunludur</div>
-                            </div>
-
+                            <!-- Publisher (Select) -->
                             <div class="col-md-6 mb-3">
-                                <label for="genre" class="form-label">
-                                    <i class="bi bi-tag"></i> Tür
+                                <label for="publisherId" class="form-label">
+                                    <i class="bi bi-building"></i> Yayınevi *
                                 </label>
-                                <input type="text" class="form-control" id="genre" name="genre" 
-                                       placeholder="Örn: Roman, Bilim Kurgu">
-                                <small class="text-muted">Opsiyonel</small>
+                                <select class="form-select" id="publisherId" name="publisherId" required>
+                                    <option value="" selected disabled>Seçiniz...</option>
+                                </select>
+                                <div class="invalid-feedback">Lütfen yayınevi seçiniz</div>
                             </div>
 
+                            <!-- Publish Year -->
+                            <div class="col-md-6 mb-3">
+                                <label for="publishYear" class="form-label">
+                                    <i class="bi bi-calendar"></i> Basım Yılı
+                                </label>
+                                <input type="number" class="form-control" id="publishYear" name="publishYear" 
+                                       placeholder="Örn: 2020" min="1800" max="2025">
+                            </div>
+
+                             <!-- ISBN -->
                             <div class="col-md-6 mb-3">
                                 <label for="isbn" class="form-label">
                                     <i class="bi bi-upc"></i> ISBN
                                 </label>
                                 <input type="text" class="form-control" id="isbn" name="isbn" 
                                        placeholder="Örn: 978-3-16-148410-0">
-                                <small class="text-muted">Opsiyonel</small>
                             </div>
 
-                            <div class="col-md-6 mb-3">
-                                <label for="publishYear" class="form-label">
-                                    <i class="bi bi-calendar"></i> Basım Yılı
-                                </label>
-                                <input type="number" class="form-control" id="publishYear" name="publishYear" 
-                                       placeholder="Örn: 2020" min="1800" max="2024">
-                                <small class="text-muted">1800-2024 arası</small>
-                            </div>
-
+                            <!-- Stock -->
                             <div class="col-md-6 mb-3">
                                 <label for="stockCount" class="form-label">
                                     <i class="bi bi-box-seam"></i> Stok Adedi *
                                 </label>
                                 <input type="number" class="form-control" id="stockCount" name="stockCount" 
                                        value="1" min="0" required>
-                                <small class="text-muted">Kaç adet var?</small>
                             </div>
+
+                            <!-- Authors (Multi Select / Checkboxes) -->
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label"><i class="bi bi-person"></i> Yazarlar *</label>
+                                <div id="authorsList" class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
+                                    <!-- Authors will be loaded here -->
+                                    <div class="text-muted small">Yükleniyor...</div>
+                                </div>
+                            </div>
+
+                            <!-- Categories (Multi Select / Checkboxes) -->
+                            <div class="col-md-12 mb-3">
+                                <label class="form-label"><i class="bi bi-tags"></i> Kategoriler</label>
+                                <div id="categoriesList" class="border rounded p-2" style="max-height: 150px; overflow-y: auto;">
+                                     <!-- Categories will be loaded here -->
+                                     <div class="text-muted small">Yükleniyor...</div>
+                                </div>
+                            </div>
+
                         </div>
 
                         <div class="d-flex gap-2 mt-4">
@@ -78,18 +91,6 @@
                             </a>
                         </div>
                     </form>
-                </div>
-            </div>
-
-            <div class="card mt-3 border-info">
-                <div class="card-body">
-                    <h6 class="card-title"><i class="bi bi-info-circle"></i> Bilgi</h6>
-                    <p class="card-text mb-0">
-                        <small>
-                            * ile işaretli alanlar zorunludur. 
-                            Diğer alanları boş bırakabilirsiniz.
-                        </small>
-                    </p>
                 </div>
             </div>
         </div>
@@ -108,7 +109,60 @@
 </div>
 
 <script>
-const apiBase = "http://localhost:5045/api/books";
+const apiBase = "http://localhost:5045/api";
+
+async function loadData() {
+    try {
+        // Load Publishers
+        const pubRes = await fetch(`${apiBase}/publishers`);
+        const publishers = await pubRes.json();
+        const pubSelect = document.getElementById('publisherId');
+        publishers.forEach(p => {
+             const opt = document.createElement('option');
+             opt.value = p.id;
+             opt.textContent = p.name;
+             pubSelect.appendChild(opt);
+        });
+
+        // Load Authors
+        const authRes = await fetch(`${apiBase}/authors`);
+        const authors = await authRes.json();
+        const authDiv = document.getElementById('authorsList');
+        authDiv.innerHTML = '';
+        authors.forEach(a => {
+            const div = document.createElement('div');
+            div.className = 'form-check';
+            div.innerHTML = `
+                <input class="form-check-input" type="checkbox" value="${a.id}" id="auth_${a.id}" name="authorIds">
+                <label class="form-check-label" for="auth_${a.id}">${a.name}</label>
+            `;
+            authDiv.appendChild(div);
+        });
+
+        // Load Categories
+        const catRes = await fetch(`${apiBase}/categories`);
+        const categories = await catRes.json();
+        const catDiv = document.getElementById('categoriesList');
+        catDiv.innerHTML = '';
+        categories.forEach(c => {
+            const div = document.createElement('div');
+            div.className = 'form-check';
+            div.innerHTML = `
+                <input class="form-check-input" type="checkbox" value="${c.id}" id="cat_${c.id}" name="categoryIds">
+                <label class="form-check-label" for="cat_${c.id}">${c.name}</label>
+            `;
+            catDiv.appendChild(div);
+        });
+
+    } catch(e) {
+        console.error("Veri yükleme hatası", e);
+        showToast("Veriler yüklenirken hata oluştu. API çalışıyor mu?", "Hata");
+    }
+}
+
+// Load data on page load
+document.addEventListener('DOMContentLoaded', loadData);
+
 
 function showToast(message, title = "Bildirim") {
     const toastEl = document.getElementById('liveToast');
@@ -118,27 +172,42 @@ function showToast(message, title = "Bildirim") {
     toast.show();
 }
 
-// Form submit
 document.getElementById("createForm").addEventListener("submit", async (e) => {
     e.preventDefault();
     
     const form = e.target;
     const submitBtn = document.getElementById("submitBtn");
     
+    // Validate Publisher
+    if(!form.publisherId.value) {
+        showToast("Lütfen bir yayınevi seçin", "Uyarı");
+        return;
+    }
+
+    // Collect IDs
+    const authorIds = Array.from(document.querySelectorAll('input[name="authorIds"]:checked')).map(cb => parseInt(cb.value));
+    const categoryIds = Array.from(document.querySelectorAll('input[name="categoryIds"]:checked')).map(cb => parseInt(cb.value));
+
+    if(authorIds.length === 0) {
+        showToast("Lütfen en az bir yazar seçin", "Uyarı");
+        return;
+    }
+    
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Kaydediliyor...';
 
     const bookData = {
         title: form.title.value.trim(),
-        author: form.author.value.trim(),
-        genre: form.genre.value.trim() || "",
         isbn: form.isbn.value.trim() || "",
         publishYear: parseInt(form.publishYear.value) || 0,
-        stockCount: parseInt(form.stockCount.value) || 0
+        stockCount: parseInt(form.stockCount.value) || 0,
+        publisherId: parseInt(form.publisherId.value),
+        authorIds: authorIds,
+        categoryIds: categoryIds
     };
     
     try {
-        const res = await fetch(apiBase, {
+        const res = await fetch(`${apiBase}/books`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(bookData),
@@ -151,26 +220,13 @@ document.getElementById("createForm").addEventListener("submit", async (e) => {
                 window.location.href = "/Books/Index";
             }, 1000);
         } else {
-            throw new Error("API hatası");
+            const txt = await res.text();
+            throw new Error(txt || "API hatası");
         }
     } catch (error) {
-        showToast("Kitap eklenirken hata oluştu. Lütfen tekrar deneyin.", "Hata");
+        showToast("Kitap eklenirken hata: " + error.message, "Hata");
         submitBtn.disabled = false;
         submitBtn.innerHTML = '<i class="bi bi-check-circle"></i> Kitabı Kaydet';
     }
 });
-
-(function () {
-    'use strict'
-    const forms = document.querySelectorAll('.needs-validation')
-    Array.from(forms).forEach(form => {
-        form.addEventListener('submit', event => {
-            if (!form.checkValidity()) {
-                event.preventDefault()
-                event.stopPropagation()
-            }
-            form.classList.add('was-validated')
-        }, false)
-    })
-})()
 </script>

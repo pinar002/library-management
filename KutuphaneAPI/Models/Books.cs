@@ -8,9 +8,13 @@ namespace KutuphaneAPI.Models
 
         public string Title { get; set; } = "";
 
-        public string Author { get; set; } = "";
+        // Relationships
+        public int PublisherId { get; set; }
+        public Publisher? Publisher { get; set; }
 
-        public string Genre { get; set; } = "";
+        public ICollection<Author> Authors { get; set; } = new List<Author>();
+
+        public ICollection<Category> Categories { get; set; } = new List<Category>();
 
         public string ISBN { get; set; } = "";
 

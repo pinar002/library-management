@@ -15,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using KutuphaneAPI.Data;
 using KutuphaneAPI.Models;
+using KutuphaneAPI.Models.DTOs;
 
 namespace KutuphaneAPI.Controllers
 {
@@ -36,7 +37,11 @@ namespace KutuphaneAPI.Controllers
         [HttpGet]
         public async Task<ActionResult<IEnumerable<Book>>> GetAll()
         {
-            var kitaplar = await _db.Books.ToListAsync();
+            var kitaplar = await _db.Books
+                .Include(b => b.Authors)
+                .Include(b => b.Publisher)
+                .Include(b => b.Categories)
+                .ToListAsync();
             return kitaplar;
         }
 
@@ -45,7 +50,11 @@ namespace KutuphaneAPI.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<Book>> Get(int id)
         {
-            var kitap = await _db.Books.FindAsync(id);
+            var kitap = await _db.Books
+                .Include(b => b.Authors)
+                .Include(b => b.Publisher)
+                .Include(b => b.Categories)
+                .FirstOrDefaultAsync(b => b.Id == id);
 
             if (kitap == null) 
                 return NotFound();
@@ -56,9 +65,40 @@ namespace KutuphaneAPI.Controllers
         // YENİ KİTAP EKLE
         // POST: api/books
         [HttpPost]
-        public async Task<ActionResult<Book>> Create(Book book)
+        public async Task<ActionResult<Book>> Create(BookCreateDto bookDto)
         {
-            // Yeni kitabı veritabanına ekle
+            // Publisher check
+            var publisher = await _db.Publishers.FindAsync(bookDto.PublisherId);
+            if (publisher == null)
+                return BadRequest("Invalid Publisher ID");
+
+            // Authors check
+            var authors = new List<Author>();
+            foreach(var authId in bookDto.AuthorIds)
+            {
+                var author = await _db.Authors.FindAsync(authId);
+                if(author != null) authors.Add(author);
+            }
+
+            // Categories check
+            var categories = new List<Category>();
+            foreach(var catId in bookDto.CategoryIds)
+            {
+                var category = await _db.Categories.FindAsync(catId);
+                if(category != null) categories.Add(category);
+            }
+
+            var book = new Book
+            {
+                Title = bookDto.Title,
+                ISBN = bookDto.ISBN,
+                PublishYear = bookDto.PublishYear,
+                StockCount = bookDto.StockCount,
+                Publisher = publisher,
+                Authors = authors,
+                Categories = categories
+            };
+
             _db.Books.Add(book);
             
             await _db.SaveChangesAsync();
@@ -123,8 +163,11 @@ namespace KutuphaneAPI.Controllers
             query = query.ToLower();
 
             var sonuclar = await _db.Books
+                .Include(b => b.Authors)
+                .Include(b => b.Publisher)
+                .Include(b => b.Categories)
                 .Where(b => b.Title.ToLower().Contains(query)
-                         || b.Author.ToLower().Contains(query)
+                         || b.Authors.Any(a => a.Name.ToLower().Contains(query))
                          || b.ISBN.ToLower().Contains(query))
                 .ToListAsync();
 

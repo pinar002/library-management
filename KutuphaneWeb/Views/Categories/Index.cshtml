@@ -1,0 +1,68 @@
+@{
+    ViewData["Title"] = "Kategoriler";
+}
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2><i class="bi bi-tags"></i> Kategoriler</h2>
+        <a href="/Categories/Create" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> Yeni Kategori
+        </a>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <div id="loading" class="text-center p-3">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Yükleniyor...</span>
+                </div>
+                <p class="mt-2 text-muted">Kategoriler yükleniyor...</p>
+            </div>
+            
+            <div class="table-responsive">
+                <table class="table table-hover d-none" id="categoriesTable">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Kategori Adı</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tableBody">
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    const apiBase = "http://localhost:5045/api/categories";
+
+    async function loadCategories() {
+        try {
+            const response = await fetch(apiBase);
+            const data = await response.json();
+            
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+            
+            data.forEach(item => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.id}</td>
+                    <td><span class="fw-bold">${item.name}</span></td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+            document.getElementById('loading').classList.add('d-none');
+            document.getElementById('categoriesTable').classList.remove('d-none');
+            
+        } catch (error) {
+            console.error('Hata:', error);
+            document.getElementById('loading').innerHTML = '<div class="alert alert-danger">Veriler yüklenirken bir hata oluştu.</div>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadCategories);
+</script>
