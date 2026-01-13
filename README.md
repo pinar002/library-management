@@ -2,7 +2,7 @@
 
 Bu proje ASP.NET Core kullanılarak geliştirilmiş kapsamlı bir kütüphane yönetim sistemidir. Kitap, yazar, yayınevi, kategori ve üye yönetimi ile ödünç alma/iade etme süreçlerini kapsayan tam donanımlı bir çözümdür.
 
-## 🎯 Projenin Amacı
+## Projenin Amacı
 
 - **Kütüphane Envanter Yönetimi**: Kitapları, yazarları, yayınevlerini ve kategorileri dijital ortamda organize etmek.
 - **Üye Takibi**: Kütüphane üyelerinin kayıtlarını tutmak.
@@ -10,79 +10,52 @@ Bu proje ASP.NET Core kullanılarak geliştirilmiş kapsamlı bir kütüphane y�
 - **Stok Kontrolü**: Kitap stoklarını anlık olarak izlemek.
 - **Kullanıcı Dostu Arayüz**: Kolay kullanılabilir bir web arayüzü sunmak.
 
-## 🛠 Kullanılan Teknolojiler
+## Kullanılan Teknolojiler
 
 ### Backend
-- **ASP.NET Core Web API**: RESTful servisler.
-- **Entity Framework Core**: ORM aracı.
-- **SQLite**: Veritabanı yönetim sistemi.
-- **AutoMapper**: Nesne eşleştirme (DTO dönüşümleri).
+- **ASP.NET Core Web API**: RESTful servis mimarisine uygun olarak geliştirilmiştir.
+- **Entity Framework Core**: Veritabanı işlemleri için ORM (Object-Relational Mapping) aracı olarak kullanılmıştır.
+- **SQLite**: Hafif ve taşınabilir bir veritabanı çözümü olarak tercih edilmiştir.
+- **AutoMapper**: DTO (Data Transfer Object) ve Entity nesneleri arasındaki dönüşümleri otomatize etmek için kullanılmıştır.
 
 ### Frontend
-- **ASP.NET Core MVC**: Arayüz katmanı.
-- **Bootstrap 5 & CSS**: Modern ve responsive tasarım.
-- **JavaScript (Fetch API)**: Dinamik veri yönetimi ve API iletişimi.
+- **ASP.NET Core MVC**: Model-View-Controller desenine uygun sunucu taraflı render işlemleri için kullanılmıştır.
+- **Bootstrap 5 & CSS**: Responsive ve modern arayüz tasarımı için kullanılmıştır.
+- **JavaScript (Fetch API)**: İstemci tarafında asenkron veri alışverişi ve dinamik içerik güncellemeleri için kullanılmıştır.
 
-## 🏗 Proje Mimarisi
+## Proje Mimarisi
 
-Proje iki ana katmandan oluşmaktadır:
+Proje, sorumlulukların ayrılığı ilkesine (Separation of Concerns) uygun olarak iki ana katman halinde yapılandırılmıştır:
 
-### 1. KutuphaneAPI (Backend)
-Tüm iş mantığının ve veri erişiminin yönetildiği katmandır.
+### 1. KutuphaneAPI (Backend Servis Katmanı)
+Bu katman, uygulamanın çekirdek iş mantığını ve veri erişim katmanını barındırır. Web arayüzünden bağımsız çalışabilir ve farklı istemciler (Mobil, Web, Desktop) tarafından tüketilebilir.
 
-**Temel Modüller ve Endpointler:**
+**Teknik Detaylar:**
+*   **Controller-Service-Repository Yapısı**: İstekler Controller'lar tarafından karşılanır, iş kuralları işlenir ve Entity Framework Core aracılığıyla veritabanı işlemleri gerçekleştirilir.
+*   **Dependency Injection (DI)**: Servisler ve veritabanı bağlamı, ASP.NET Core'un yerleşik IOC Container'ı üzerinden yönetilir.
+*   **DTO (Data Transfer Objects)**: API dışarıya veritabanı varlıklarını (Entity) doğrudan açmaz; bunun yerine istemcinin ihtiyacına göre şekillendirilmiş DTO'lar kullanılır. Bu sayede veri güvenliği ve gereksiz veri transferinin önüne geçilir.
+*   **Middleware**: Hata yönetimi ve HTTP isteklerinin loglanması gibi çapraz kesen ilgiler (cross-cutting concerns) için yapılandırılmıştır.
 
-*   **Kitaplar (`/api/books`)**: Ekleme (`POST`), listeleme (`GET`), güncelleme (`PUT`), silme (`DELETE`) ve arama (`GET /search`).
-*   **Yazarlar (`/api/authors`)**: Yazar yönetimi işlemleri.
-*   **Yayınevleri (`/api/publishers`)**: Yayınevi kayıt ve takibi.
-*   **Kategoriler (`/api/categories`)**: Kitap kategorileri yönetimi.
-*   **Üyeler (`/api/members`)**: Kütüphane üyelerinin yönetimi.
-*   **Ödünç İşlemleri (`/api/loans`)**:
-    *   Ödünç verme (`POST`)
-    *   İade alma (`PUT /return`)
-    *   Aktif ödünçleri listeleme
+**Ana Modüller:**
+*   **Kitap Yönetimi**: Kitapların CRUD işlemleri, stok takibi ve arama algoritmaları.
+*   **İlişkisel Veri Yönetimi**: Yazar, Yayınevi ve Kategori gibi ilişkisel verilerin yönetimi.
+*   **Hareket İşlemleri**: Üyelerin kitap ödünç alma ve iade etme süreçlerinin transactional olarak yönetilmesi.
 
-### 2. KutuphaneWeb (Frontend)
-Kullanıcıların sistemle etkileşime girdiği web arayüzüdür.
+### 2. KutuphaneWeb (Frontend Arayüz Katmanı)
+Son kullanıcının etkileşime girdiği MVC tabanlı web uygulamasıdır. Backend API ile HTTP protokolü üzerinden haberleşir.
 
-**Sayfalar:**
-*   **Ana Sayfa**: Genel istatistikler ve hızlı erişim.
-*   **Kitap Yönetimi**: Kitap listeleme, ekleme ve detay görüntüleme.
-*   **Yazar & Yayınevi & Kategori**: İlgili veri tanımlamaları için yönetim sayfaları.
-*   **Üyeler**: Üye listesi ve yeni üye kaydı.
-*   **Ödünç İşlemleri**: Kitap ödünç verme ve iade alma arayüzleri.
+**Teknik Detaylar:**
+*   **MVC Deseni**: 
+    *   **Model**: Görünüm için hazırlanan ViewModel nesneleri.
+    *   **View**: Razor şablon motoru ile oluşturulan dinamik HTML sayfaları.
+    *   **Controller**: Kullanıcı etkileşimlerini alıp API'ye istek yapan ve sonucu View'a ileten mekanizma.
+*   **Asenkron İletişim**: `HttpClient` veya JavaScript `Fetch API` kullanılarak API ile asenkron iletişim kurulur, bu sayede kullanıcı deneyimi kesintiye uğramaz.
+*   **Client-Side Validasyon**: jQuery Validation ve HTML5 özellikleri ile temel veri doğrulamaları istemci tarafında yapılır.
 
-## 🚀 Kurulum ve Çalıştırma
+## Sistem Çalışma Mantığı ve Veri Akışı
 
-Projenin çalışması için bilgisayarınızda [.NET SDK](https://dotnet.microsoft.com/download) yüklü olmalıdır.
-
-1.  **Projeyi Klonlayın:**
-    ```bash
-    git clone https://github.com/kullaniciadi/kutuphane-yonetim-sistemi.git
-    cd kutuphane-yonetim-sistemi
-    ```
-
-2.  **API'yi Başlatın:**
-    Yeni bir terminal açın ve `KutuphaneAPI` dizinine gidin:
-    ```bash
-    cd KutuphaneAPI
-    dotnet run
-    ```
-
-3.  **Web Arayüzünü Başlatın:**
-    Yeni bir terminal açın ve `KutuphaneWeb` dizinine gidin:
-    ```bash
-    cd KutuphaneWeb
-    dotnet run
-    ```
-
-4.  **Uygulamaya Erişin:**
-    Tarayıcınızdan `https://localhost:7147` (Veya terminalde belirtilen port) adresine gidin.
-
-## 🤝 Katkıda Bulunma
-
-1.  Forklayın.
-2.  Yeni bir feature branch oluşturun (`git checkout -b feature/yeni-ozellik`).
-3.  Değişikliklerinizi commit yapın (`git commit -m 'Yeni özellik eklendi'`).
-4.  Branch'inizi pushlayın (`git push origin feature/yeni-ozellik`).
-5.  Pull Request oluşturun.
+1.  **Kullanıcı Etkileşimi**: Kullanıcı web arayüzünde bir işlem başlatır (Örn: "Kitap Ödünç Al").
+2.  **Frontend İşlemi**: Web uygulaması bu isteği alır ve gerekli parametrelerle birlikte Backend API'nin ilgili endpoint'ine (Örn: `PUT /api/loans`) bir HTTP isteği gönderir.
+3.  **API Doğrulama ve İşleme**: Backend API isteği karşılar, validasyon kurallarını işletir (Stok var mı? Üye cezalı mı?) ve işlemi gerçekleştirir.
+4.  **Veritabanı Kaydı**: Onaylanan işlem SQLite veritabanına ACID prensiplerine uygun olarak yazılır.
+5.  **Geri Bildirim**: API işlemin sonucunu (Başarılı/Hata) Frontend'e döner. Frontend bu sonucu kullanıcıya anlamlı bir mesaj olarak gösterir.
