@@ -1,3 +1,7 @@
+## Ek Kaynaklar
+
+- [Google Drive Dosyası](https://drive.google.com/file/d/1_0cpiEBVe2UPKHUq1STCqyn5nJmuQctj/view?usp=sharing)
+
 # Kütüphane Yönetim Sistemi
 
 Bu proje ASP.NET Core kullanılarak geliştirilmiş kapsamlı bir kütüphane yönetim sistemidir. Kitap, yazar, yayınevi, kategori ve üye yönetimi ile ödünç alma/iade etme süreçlerini kapsayan tam donanımlı bir çözümdür.
@@ -59,3 +63,4 @@ Son kullanıcının etkileşime girdiği MVC tabanlı web uygulamasıdır. Backe
 3.  **API Doğrulama ve İşleme**: Backend API isteği karşılar, validasyon kurallarını işletir (Stok var mı? Üye cezalı mı?) ve işlemi gerçekleştirir.
 4.  **Veritabanı Kaydı**: Onaylanan işlem SQLite veritabanına ACID prensiplerine uygun olarak yazılır.
 5.  **Geri Bildirim**: API işlemin sonucunu (Başarılı/Hata) Frontend'e döner. Frontend bu sonucu kullanıcıya anlamlı bir mesaj olarak gösterir.
+
