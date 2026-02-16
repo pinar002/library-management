@@ -1,7 +1,3 @@
-## Ek Kaynaklar
-
-- [Google Drive Dosyası](https://drive.google.com/file/d/1_0cpiEBVe2UPKHUq1STCqyn5nJmuQctj/view?usp=sharing)
-
 # Kütüphane Yönetim Sistemi
 
 Bu proje ASP.NET Core kullanılarak geliştirilmiş kapsamlı bir kütüphane yönetim sistemidir. Kitap, yazar, yayınevi, kategori ve üye yönetimi ile ödünç alma/iade etme süreçlerini kapsayan tam donanımlı bir çözümdür.
