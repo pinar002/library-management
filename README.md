@@ -1,4 +1,4 @@
-# Kütüphane Yönetim Sistemi
+# Library Management System
 
 ### Backend
 - **ASP.NET Core Web API**
